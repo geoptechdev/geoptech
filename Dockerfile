@@ -60,33 +60,37 @@
 
 FROM php:8.4-cli
 
-WORKDIR /geoptechapp
+# Set working directory
+WORKDIR /app
 
-# Install dependencies
+# Install system dependencies
 RUN apt-get update && apt-get install -y \
     git unzip curl libzip-dev \
     && docker-php-ext-install pdo pdo_mysql zip
 
-# Install composer
+# Install Composer
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
 # Copy full project
 COPY . .
 
-# 🔥 VERY IMPORTANT: disable scripts during build
+# Install dependencies (safe mode)
 RUN COMPOSER_ALLOW_SUPERUSER=1 \
-    composer install --no-dev --no-scripts --optimize-autoloader --no-interaction
+    composer install \
+    --no-dev \
+    --no-scripts \
+    --optimize-autoloader \
+    --no-interaction
 
-# Generate key (safe)
+# Setup Laravel (safe fallback commands)
 RUN php artisan key:generate || true
-
-# Now run scripts manually (safe fallback)
 RUN php artisan package:discover || true
-
-# Clear cache
 RUN php artisan config:clear || true
 RUN php artisan cache:clear || true
 
+# Expose Bunny required port
 EXPOSE 8080
 
+# Run Laravel server
+CMD php artisan serve --host=0.0.0.0 --port=8080
 CMD php artisan serve --host=0.0.0.0 --port=8080
