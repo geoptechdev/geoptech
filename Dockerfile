@@ -1,30 +1,36 @@
 FROM php:8.2-fpm-alpine
 
 # Install system dependencies
-RUN apk add --no-cache nginx supervisor curl git unzip libzip-dev \
-    && docker-php-ext-install pdo pdo_mysql zip
+RUN apk add --no-cache \
+    nginx supervisor curl git unzip libzip-dev oniguruma-dev icu-dev
+
+# Install PHP extensions required by Laravel
+RUN docker-php-ext-install \
+    pdo \
+    pdo_mysql \
+    mbstring \
+    zip \
+    bcmath \
+    intl
 
 # Install Composer
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
-# Set working directory
 WORKDIR /var/www/html
 
-# Copy composer files first (for caching)
+# Copy composer files first
 COPY composer.json composer.lock ./
 
-RUN composer install --no-dev --no-scripts --no-autoloader --prefer-dist
+# Install dependencies (NOW WILL WORK)
+RUN composer install --no-dev --optimize-autoloader --no-interaction
 
-# Copy full project
+# Copy project
 COPY . .
 
-# Optimize autoload
-RUN composer dump-autoload --optimize
-
-# Fix permissions
+# Permissions
 RUN chown -R www-data:www-data storage bootstrap/cache
 
-# Clear Laravel cache
+# Clear cache
 RUN php artisan config:clear && \
     php artisan cache:clear && \
     php artisan view:clear
@@ -36,7 +42,6 @@ COPY docker/entrypoint.sh /entrypoint.sh
 
 RUN chmod +x /entrypoint.sh
 
-# 🔥 IMPORTANT: Bunny requires 8080
 EXPOSE 8080
 
 CMD ["/entrypoint.sh"]
