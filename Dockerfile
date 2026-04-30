@@ -62,7 +62,7 @@ FROM php:8.4-cli
 
 WORKDIR /app
 
-# Install system deps
+# Install dependencies
 RUN apt-get update && apt-get install -y \
     git unzip curl libzip-dev \
     && docker-php-ext-install pdo pdo_mysql zip
@@ -70,15 +70,20 @@ RUN apt-get update && apt-get install -y \
 # Install composer
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
-# 🔥 Copy only composer first (cache layer)
-COPY composer.json composer.lock ./
-
-RUN COMPOSER_ALLOW_SUPERUSER=1 \
-    composer install --no-dev --optimize-autoloader --no-interaction
-
-# Then copy rest of app
+# Copy full project
 COPY . .
 
+# 🔥 VERY IMPORTANT: disable scripts during build
+RUN COMPOSER_ALLOW_SUPERUSER=1 \
+    composer install --no-dev --no-scripts --optimize-autoloader --no-interaction
+
+# Generate key (safe)
+RUN php artisan key:generate || true
+
+# Now run scripts manually (safe fallback)
+RUN php artisan package:discover || true
+
+# Clear cache
 RUN php artisan config:clear || true
 RUN php artisan cache:clear || true
 
