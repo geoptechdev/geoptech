@@ -38,5 +38,5 @@ jobs:
         with:
           app_id: ${{ secrets.BUNNY_APP_ID }}   # ✅ FIXED
           api_key: ${{ secrets.BUNNYNET_API_KEY }}
-          container: geoptechapp
+          container: app
           image_tag: ${{ github.sha }}
