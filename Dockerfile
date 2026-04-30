@@ -60,7 +60,7 @@
 
 FROM php:8.4-cli
 
-WORKDIR /app
+WORKDIR /geoptechapp
 
 # Install dependencies
 RUN apt-get update && apt-get install -y \
